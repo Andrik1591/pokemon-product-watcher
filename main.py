@@ -22,7 +22,7 @@ PRODUCT_URLS = [
     "https://www.mueller.de/p/lego-star-wars-75375-millennium-falcon-bauset-IPN2962320/"
 ]
 
-CHECK_INTERVAL = 60 * 10  # alle 10 Minuten prüfen
+CHECK_INTERVAL = 60  # jede Minute prüfen
 
 def send_telegram_message(text):
     try:
