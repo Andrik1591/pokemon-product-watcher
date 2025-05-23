@@ -41,12 +41,13 @@ def is_product_available(url):
         response.raise_for_status()
         soup = BeautifulSoup(response.text, "html.parser")
 
-        # *** Anpassung je Shop ***
-
-        # Mueller: Verfügbarkeit prüfen via "In den Warenkorb"
+        # Mueller: Suche Button oder Link mit Text "In den Warenkorb"
         if "mueller.de" in url:
-            available = soup.find(text=lambda t: t and "In den Warenkorb" in t.lower())
-            return bool(available)
+            # Suche Buttons und Links mit dem Text
+            button = soup.find(lambda tag: 
+                               (tag.name == "button" or tag.name == "a") and
+                               tag.get_text(strip=True).lower() == "in den warenkorb")
+            return button is not None
 
         # SmythsToys: Prüfen auf "Momentan nicht verfügbar" oder ähnliches
         elif "smythstoys.com" in url:
