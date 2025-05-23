@@ -85,5 +85,23 @@ def main():
         print(f"Warte {CHECK_INTERVAL/60} Minuten bis zum nächsten Check.")
         time.sleep(CHECK_INTERVAL)
 
+from flask import Flask
+import threading
+import os
+
+app = Flask(__name__)
+
+@app.route("/")
+def index():
+    return "Produktüberwachung läuft!"
+
 if __name__ == "__main__":
-    main()
+    # Starte deine Überwachungsfunktion als Thread
+    thread = threading.Thread(target=check_availability)  # check_availability muss definiert sein
+    thread.daemon = True
+    thread.start()
+
+    # Starte den Webserver
+    port = int(os.environ.get("PORT", 8080))
+    app.run(host="0.0.0.0", port=port)
+
