@@ -5,6 +5,21 @@ from bs4 import BeautifulSoup
 import telegram
 from dotenv import load_dotenv
 
+def send_test_message():
+    token = os.getenv("TELEGRAM_BOT_TOKEN")
+    chat_id = os.getenv("TELEGRAM_CHAT_ID")
+    url = f"https://api.telegram.org/bot{token}/sendMessage"
+    message = "🚀 Bot gestartet und läuft!"
+    params = {"chat_id": chat_id, "text": message}
+    try:
+        response = requests.get(url, params=params)
+        if response.status_code == 200:
+            print("Test-Nachricht erfolgreich gesendet.")
+        else:
+            print("Fehler beim Senden der Test-Nachricht:", response.text)
+    except Exception as e:
+        print("Exception beim Senden der Test-Nachricht:", e)
+
 load_dotenv()
 
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
