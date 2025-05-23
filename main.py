@@ -19,6 +19,7 @@ PRODUCT_URLS = [
     "https://www.smythstoys.com/de/de-de/spielzeug/action-spielzeug/pokemon/pokemon-karten-karmesin-und-purpur-prismatische-entwicklungen-top-trainer-box/p/245332",
     "https://www.smythstoys.com/de/de-de/spielzeug/action-spielzeug/pokemon/pokemon-karten-karmesin-und-purpur-prismatische-entwicklungen-ueberraschungsbox/p/246195",
     "https://www.mediamarkt.de/de/product/_the-pokemon-company-int-10617-pokemon-kp085-boosterbundle-sammelkarten-2973282.html"
+    "https://www.mueller.de/p/lego-star-wars-75375-millennium-falcon-bauset-IPN2962320/"
 ]
 
 CHECK_INTERVAL = 60 * 10  # alle 10 Minuten prüfen
