@@ -43,19 +43,19 @@ def is_product_available(url):
 
         # *** Anpassung je Shop ***
 
-        # Mueller: Verfügbarkeit prüfen
+        # Mueller: Verfügbarkeit prüfen via "In den Warenkorb"
         if "mueller.de" in url:
-            not_available = soup.find(text=lambda t: "nicht verfügbar" in t.lower())
-            return not not_available
+            available = soup.find(text=lambda t: t and "In den Warenkorb" in t.lower())
+            return bool(available)
 
         # SmythsToys: Prüfen auf "Momentan nicht verfügbar" oder ähnliches
         elif "smythstoys.com" in url:
-            not_available = soup.find(text=lambda t: "momentan nicht verfügbar" in t.lower())
+            not_available = soup.find(text=lambda t: t and "momentan nicht verfügbar" in t.lower())
             return not not_available
 
         # MediaMarkt: Prüfen auf "nicht verfügbar"
         elif "mediamarkt.de" in url:
-            not_available = soup.find(text=lambda t: "nicht verfügbar" in t.lower())
+            not_available = soup.find(text=lambda t: t and "nicht verfügbar" in t.lower())
             return not not_available
 
         else:
