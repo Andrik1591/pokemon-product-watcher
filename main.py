@@ -15,7 +15,6 @@ PRODUCT_URLS = [
     "https://www.mueller.de/p/pokemon-sammelkartenspiel-super-premium-kollektion-karmesin-purpur-prismatische-entwicklungen-PPN3101975/?itemId=3101975",
     "https://www.mueller.de/p/pokemon-sammelkartenspiel-top-trainer-box-karmesin-purpur-prismatische-entwicklungen-IPN3074733/",
     "https://www.mueller.de/p/pokemon-sammelkartenspiel-spezial-kollektion-karmesin-purpur-prismatische-entwicklungen-zubehoer-beutel-PPN3098433/",
-    "https://www.mueller.de/p/lego-star-wars-75375-millennium-falcon-bauset-IPN2962320/",
     "https://www.smythstoys.com/de/de-de/spielzeug/action-spielzeug/pokemon/pokemon-karten-karmesin-und-purpur-prismatische-entwicklungen-super-premium-kollektion/p/250525",
     "https://www.smythstoys.com/de/de-de/spielzeug/action-spielzeug/pokemon/pokemon-karten-karmesin-und-purpur-prismatische-entwicklungen-top-trainer-box/p/245332",
     "https://www.smythstoys.com/de/de-de/spielzeug/action-spielzeug/pokemon/pokemon-karten-karmesin-und-purpur-prismatische-entwicklungen-ueberraschungsbox/p/246195",
@@ -43,19 +42,31 @@ def is_product_available(url):
 
         # Mueller: Suche Button oder Link mit Text "In den Warenkorb"
         if "mueller.de" in url:
-            # Suche Buttons und Links mit dem Text
             button = soup.find(lambda tag: 
                                (tag.name == "button" or tag.name == "a") and
                                tag.get_text(strip=True).lower() == "in den warenkorb")
             return button is not None
 
-        # SmythsToys: Prüfen auf "Momentan nicht verfügbar" oder ähnliches
+        # SmythsToys: Suche Button oder Link mit Text "In den Warenkorb legen" (oder ähnlich)
         elif "smythstoys.com" in url:
+            button = soup.find(lambda tag: 
+                               (tag.name == "button" or tag.name == "a") and
+                               ("in den warenkorb legen" in tag.get_text(strip=True).lower() or
+                                "in den warenkorb" in tag.get_text(strip=True).lower()))
+            # Falls Button nicht gefunden wird, prüfe ob "momentan nicht verfügbar" im Text vorkommt
+            if button:
+                return True
             not_available = soup.find(text=lambda t: t and "momentan nicht verfügbar" in t.lower())
             return not not_available
 
-        # MediaMarkt: Prüfen auf "nicht verfügbar"
+        # MediaMarkt: Suche Button oder Link mit Text "In den Warenkorb"
         elif "mediamarkt.de" in url:
+            button = soup.find(lambda tag: 
+                               (tag.name == "button" or tag.name == "a") and
+                               "in den warenkorb" in tag.get_text(strip=True).lower())
+            # Falls Button nicht gefunden wird, prüfe ob "nicht verfügbar" im Text vorkommt
+            if button:
+                return True
             not_available = soup.find(text=lambda t: t and "nicht verfügbar" in t.lower())
             return not not_available
 
