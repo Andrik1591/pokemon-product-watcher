@@ -21,7 +21,7 @@ PRODUCT_URLS = [
     "https://www.mediamarkt.de/de/product/_the-pokemon-company-int-10617-pokemon-kp085-boosterbundle-sammelkarten-2973282.html"
 ]
 
-CHECK_INTERVAL = 60  # jede Minute prüfen
+CHECK_INTERVAL = 60 * 5 # alle 5 Minuten prüfen
 
 def send_telegram_message(text):
     try:
