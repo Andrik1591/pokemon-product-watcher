@@ -2,6 +2,8 @@ import os
 import time
 import requests
 from bs4 import BeautifulSoup
+from flask import Flask
+import threading
 
 # Telegram Setup
 TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
@@ -42,28 +44,18 @@ def is_product_available(url):
 
         # Mueller: Verfügbarkeit prüfen
         if "mueller.de" in url:
-            # Beispiel: Button oder Text "Nicht verfügbar" prüfen
             not_available = soup.find(text=lambda t: "nicht verfügbar" in t.lower())
-            if not not_available:
-                return True
-            else:
-                return False
+            return not not_available
 
         # SmythsToys: Prüfen auf "Momentan nicht verfügbar" oder ähnliches
         elif "smythstoys.com" in url:
             not_available = soup.find(text=lambda t: "momentan nicht verfügbar" in t.lower())
-            if not not_available:
-                return True
-            else:
-                return False
+            return not not_available
 
         # MediaMarkt: Prüfen auf "nicht verfügbar"
         elif "mediamarkt.de" in url:
             not_available = soup.find(text=lambda t: "nicht verfügbar" in t.lower())
-            if not not_available:
-                return True
-            else:
-                return False
+            return not not_available
 
         else:
             # Für andere Shops einfach auf Statuscode achten (z.B. 200 = verfügbar)
@@ -73,7 +65,7 @@ def is_product_available(url):
         print(f"Fehler beim Prüfen der URL {url}: {e}")
         return False
 
-def main():
+def check_availability():
     send_telegram_message("🔎 Produktüberwachung gestartet!")
     while True:
         for url in PRODUCT_URLS:
@@ -85,10 +77,6 @@ def main():
         print(f"Warte {CHECK_INTERVAL/60} Minuten bis zum nächsten Check.")
         time.sleep(CHECK_INTERVAL)
 
-from flask import Flask
-import threading
-import os
-
 app = Flask(__name__)
 
 @app.route("/")
@@ -97,11 +85,10 @@ def index():
 
 if __name__ == "__main__":
     # Starte deine Überwachungsfunktion als Thread
-    thread = threading.Thread(target=check_availability)  # check_availability muss definiert sein
+    thread = threading.Thread(target=check_availability)
     thread.daemon = True
     thread.start()
 
     # Starte den Webserver
     port = int(os.environ.get("PORT", 8080))
     app.run(host="0.0.0.0", port=port)
-
