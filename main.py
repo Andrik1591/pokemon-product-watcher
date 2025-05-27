@@ -1,5 +1,6 @@
 import os
 import time
+import random  # NEU hinzugefügt
 import requests
 from bs4 import BeautifulSoup
 from flask import Flask
@@ -28,7 +29,10 @@ PRODUCT_URLS = [
     "https://www.mediamarkt.de/de/product/_pokemon-41094-team-rockets-mewtu-ex-kollekt-mbe6-sammelkarten-2988492.html",
     "https://www.mediamarkt.de/de/product/_pokemon-11369-pkm-kp105-top-trainer-box-z-sammelkartenspiel-2992653.html",
     "https://www.mediamarkt.de/de/product/_pokemon-11364-pkm-kp105-top-trainer-box-weiss-sammelkartenspiel-2992652.html",
-    "https://www.mediamarkt.de/de/product/_pokemon-11401-pkm-kp105-poster-kollektion-sammelkartenspiel-2992656.html"
+    "https://www.mediamarkt.de/de/product/_pokemon-11401-pkm-kp105-poster-kollektion-sammelkartenspiel-2992656.html",
+    "https://www.mueller.de/p/pokemon-adventskalender-2021-2726315/",
+    "https://www.smythstoys.com/de/de-de/spielzeug/plueschtiere-und-kuscheltiere/kuscheltiere/pokemon-plueschtiere/pokemon-kuscheltier-glurak-30-cm/p/172049",
+    "https://www.mediamarkt.de/de/product/_the-pokemon-company-int-45935-pkm-kp07-stellarkrone-booster-sammelkarten-2951644.html"
 ]
 
 CHECK_INTERVAL = 60 * 5  # alle 5 Minuten prüfen
@@ -50,14 +54,12 @@ def is_product_available(url):
         response.raise_for_status()
         soup = BeautifulSoup(response.text, "html.parser")
 
-        # Mueller: Suche Button oder Link mit Text "In den Warenkorb"
         if "mueller.de" in url:
             button = soup.find(lambda tag: 
                                (tag.name == "button" or tag.name == "a") and
                                tag.get_text(strip=True).lower() == "in den warenkorb")
             return button is not None
 
-        # SmythsToys: Suche Button oder Link mit Text "In den Warenkorb legen" (oder ähnlich)
         elif "smythstoys.com" in url:
             button = soup.find(lambda tag: 
                                (tag.name == "button" or tag.name == "a") and
@@ -68,7 +70,6 @@ def is_product_available(url):
             not_available = soup.find(text=lambda t: t and "momentan nicht verfügbar" in t.lower())
             return not not_available
 
-        # MediaMarkt: Suche Button oder Link mit Text "In den Warenkorb"
         elif "mediamarkt.de" in url:
             button = soup.find(lambda tag: 
                                (tag.name == "button" or tag.name == "a") and
@@ -79,7 +80,6 @@ def is_product_available(url):
             return not not_available
 
         else:
-            # Für andere Shops einfach auf Statuscode achten (z.B. 200 = verfügbar)
             return response.status_code == 200
 
     except Exception as e:
@@ -95,13 +95,18 @@ def check_availability():
                 send_telegram_message(f"✅ Produkt verfügbar: {url}")
             else:
                 print("Nicht verfügbar.")
-        print(f"Warte {CHECK_INTERVAL/60} Minuten bis zum nächsten Check.")
+
+            delay = random.uniform(1, 5)
+            print(f"Warte {delay:.2f} Sekunden vor dem nächsten Request...")
+            time.sleep(delay)
+
+        print(f"Warte {CHECK_INTERVAL / 60} Minuten bis zum nächsten Check.")
         time.sleep(CHECK_INTERVAL)
 
 def send_heartbeat():
     while True:
         send_telegram_message("⏰ Service läuft noch - alles okay!")
-        time.sleep(3600)  # 1 Stunde warten
+        time.sleep(3600)
 
 app = Flask(__name__)
 
