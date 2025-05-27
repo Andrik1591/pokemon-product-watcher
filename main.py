@@ -4,7 +4,7 @@ import random  # NEU hinzugefügt
 import requests
 from bs4 import BeautifulSoup
 from flask import Flask
-import threading
+import threading 
 
 # Telegram Setup
 TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
