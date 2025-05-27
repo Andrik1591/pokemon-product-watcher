@@ -47,13 +47,9 @@ def send_telegram_message(text):
 
 def is_product_available(url):
     try:
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
-            "Accept-Language": "de-DE,de;q=0.9,en-US;q=0.8,en;q=0.7",
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-            "Referer": "https://www.google.com/",
-            "Connection": "keep-alive"
-        }
+    headers = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:117.0) Gecko/20100101 Firefox/117.0"
+    }
         response = requests.get(url, headers=headers)
         response.raise_for_status()
         soup = BeautifulSoup(response.text, "html.parser")
@@ -65,14 +61,19 @@ def is_product_available(url):
             return button is not None
 
         elif "smythstoys.com" in url:
-            button = soup.find(lambda tag: 
-                               (tag.name == "button" or tag.name == "a") and
-                               ("in den warenkorb legen" in tag.get_text(strip=True).lower() or
-                                "in den warenkorb" in tag.get_text(strip=True).lower()))
-            if button:
-                return True
-            not_available = soup.find(text=lambda t: t and "momentan nicht verfügbar" in t.lower())
-            return not not_available
+    button = soup.find(lambda tag: 
+        (tag.name == "button" or tag.name == "a") and
+        ("in den warenkorb" in tag.get_text(strip=True).lower())
+    )
+    if button:
+        # Prüfe, ob der Button NICHT disabled ist
+        is_disabled = (
+            button.has_attr("disabled") or
+            "disabled" in button.get("class", []) or
+            "disabled" in button.attrs
+        )
+        return not is_disabled
+    return False
 
         elif "mediamarkt.de" in url:
             button = soup.find(lambda tag: 
