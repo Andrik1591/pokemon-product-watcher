@@ -48,7 +48,7 @@ def send_telegram_message(text):
 def is_product_available(url):
     try:
         headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:117.0) Gecko/20100101 Firefox/117.0"
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36"
         }
         response = requests.get(url, headers=headers)
         response.raise_for_status()
