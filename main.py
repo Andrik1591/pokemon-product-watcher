@@ -72,23 +72,23 @@ def is_product_available(url):
             return button is not None
 
         elif "smythstoys.com" in url:
-            button = soup.find(lambda tag: 
-                               (tag.name == "button" or tag.name == "a") and
-                               ("in den warenkorb legen" in tag.get_text(strip=True).lower() or
-                                "in den warenkorb" in tag.get_text(strip=True).lower()))
-            if button:
-                return True
             not_available = soup.find(text=lambda t: t and "momentan nicht verfügbar" in t.lower())
-            return not not_available
+            if not_available:
+                return False  # Nicht verfügbar
+            button = soup.find(lambda tag: 
+                       (tag.name == "button" or tag.name == "a") and
+                       ("in den warenkorb legen" in tag.get_text(strip=True).lower() or
+                        "in den warenkorb" in tag.get_text(strip=True).lower()))
+            return button is not None
 
         elif "mediamarkt.de" in url:
-            button = soup.find(lambda tag: 
-                               (tag.name == "button" or tag.name == "a") and
-                               "in den warenkorb" in tag.get_text(strip=True).lower())
-            if button:
-                return True
             not_available = soup.find(text=lambda t: t and "nicht verfügbar" in t.lower())
-            return not not_available
+            if not_available:
+                return False  # Nicht verfügbar
+            button = soup.find(lambda tag: 
+                       (tag.name == "button" or tag.name == "a") and
+                       "in den warenkorb" in tag.get_text(strip=True).lower())
+            return button is not None
 
         else:
             return response.status_code == 200
