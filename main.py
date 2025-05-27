@@ -2,7 +2,7 @@ import os
 import time
 import requests
 from bs4 import BeautifulSoup
-from flask import Flask
+from flask import Flask, jsonify
 import threading
 
 # Telegram Setup
@@ -21,7 +21,7 @@ PRODUCT_URLS = [
     "https://www.mediamarkt.de/de/product/_the-pokemon-company-int-10617-pokemon-kp085-boosterbundle-sammelkarten-2973282.html"
 ]
 
-CHECK_INTERVAL = 60 * 5 # alle 5 Minuten prüfen
+CHECK_INTERVAL = 60 * 5  # alle 5 Minuten prüfen
 
 def send_telegram_message(text):
     try:
@@ -40,38 +40,32 @@ def is_product_available(url):
         response.raise_for_status()
         soup = BeautifulSoup(response.text, "html.parser")
 
-        # Mueller: Suche Button oder Link mit Text "In den Warenkorb"
         if "mueller.de" in url:
             button = soup.find(lambda tag: 
                                (tag.name == "button" or tag.name == "a") and
                                tag.get_text(strip=True).lower() == "in den warenkorb")
             return button is not None
 
-        # SmythsToys: Suche Button oder Link mit Text "In den Warenkorb legen" (oder ähnlich)
         elif "smythstoys.com" in url:
             button = soup.find(lambda tag: 
                                (tag.name == "button" or tag.name == "a") and
                                ("in den warenkorb legen" in tag.get_text(strip=True).lower() or
                                 "in den warenkorb" in tag.get_text(strip=True).lower()))
-            # Falls Button nicht gefunden wird, prüfe ob "momentan nicht verfügbar" im Text vorkommt
             if button:
                 return True
             not_available = soup.find(text=lambda t: t and "momentan nicht verfügbar" in t.lower())
             return not not_available
 
-        # MediaMarkt: Suche Button oder Link mit Text "In den Warenkorb"
         elif "mediamarkt.de" in url:
             button = soup.find(lambda tag: 
                                (tag.name == "button" or tag.name == "a") and
                                "in den warenkorb" in tag.get_text(strip=True).lower())
-            # Falls Button nicht gefunden wird, prüfe ob "nicht verfügbar" im Text vorkommt
             if button:
                 return True
             not_available = soup.find(text=lambda t: t and "nicht verfügbar" in t.lower())
             return not not_available
 
         else:
-            # Für andere Shops einfach auf Statuscode achten (z.B. 200 = verfügbar)
             return response.status_code == 200
 
     except Exception as e:
@@ -96,12 +90,17 @@ app = Flask(__name__)
 def index():
     return "Produktüberwachung läuft!"
 
+@app.route("/health")
+def health():
+    # Einfach nur ein 200 OK mit JSON-Antwort, damit UptimeRobot prüfen kann
+    return jsonify(status="ok", message="Service läuft")
+
 if __name__ == "__main__":
-    # Starte deine Überwachungsfunktion als Thread
+    # Überwachungsthread starten
     thread = threading.Thread(target=check_availability)
     thread.daemon = True
     thread.start()
 
-    # Starte den Webserver
+    # Webserver starten (blockiert Hauptthread, läuft parallel zur Überwachung)
     port = int(os.environ.get("PORT", 8080))
     app.run(host="0.0.0.0", port=port)
