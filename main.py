@@ -48,20 +48,12 @@ def send_telegram_message(text):
 def is_product_available(url):
     try:
         headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:117.0) Gecko/20100101 Firefox/117.0",
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-            "Accept-Language": "de,en-US;q=0.7,en;q=0.3",
-            "Accept-Encoding": "gzip, deflate, br",
-            "Connection": "keep-alive",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+            "Accept-Language": "de-DE,de;q=0.9,en-US;q=0.8,en;q=0.7",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
             "Referer": "https://www.google.com/",
-            "Upgrade-Insecure-Requests": "1",
-            "DNT": "1",
-            "Sec-Fetch-Dest": "document",
-            "Sec-Fetch-Mode": "navigate",
-            "Sec-Fetch-Site": "cross-site",
-            "Sec-Fetch-User": "?1"
+            "Connection": "keep-alive"
         }
-
         response = requests.get(url, headers=headers)
         response.raise_for_status()
         soup = BeautifulSoup(response.text, "html.parser")
@@ -80,7 +72,7 @@ def is_product_available(url):
             if button:
                 return True
             not_available = soup.find(text=lambda t: t and "momentan nicht verfügbar" in t.lower())
-            return not not_available
+            return not not_available  # True wenn kein "momentan nicht verfügbar" gefunden
 
         elif "mediamarkt.de" in url:
             button = soup.find(lambda tag: 
@@ -89,7 +81,7 @@ def is_product_available(url):
             if button:
                 return True
             not_available = soup.find(text=lambda t: t and "nicht verfügbar" in t.lower())
-            return not not_available
+            return not not_available  # True wenn kein "nicht verfügbar" gefunden
 
         else:
             return response.status_code == 200
