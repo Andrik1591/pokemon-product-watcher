@@ -88,6 +88,11 @@ def check_availability():
         print(f"Warte {CHECK_INTERVAL/60} Minuten bis zum nächsten Check.")
         time.sleep(CHECK_INTERVAL)
 
+def send_heartbeat():
+    while True:
+        send_telegram_message("⏰ Service läuft noch - alles okay!")
+        time.sleep(3600)  # 1 Stunde warten
+
 app = Flask(__name__)
 
 @app.route("/")
@@ -99,9 +104,13 @@ def health_check():
     return "OK"
 
 if __name__ == "__main__":
-    thread = threading.Thread(target=check_availability)
-    thread.daemon = True
-    thread.start()
+    thread_check = threading.Thread(target=check_availability)
+    thread_check.daemon = True
+    thread_check.start()
+
+    thread_heartbeat = threading.Thread(target=send_heartbeat)
+    thread_heartbeat.daemon = True
+    thread_heartbeat.start()
 
     port = int(os.environ.get("PORT", 8080))
     app.run(host="0.0.0.0", port=port)
