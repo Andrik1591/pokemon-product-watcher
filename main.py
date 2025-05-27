@@ -61,7 +61,7 @@ def is_product_available(url):
                                tag.get_text(strip=True).lower() == "in den warenkorb")
             return button is not None
 
-       elif "smythstoys.com" in url:
+        elif "smythstoys.com" in url:
             button = soup.find(lambda tag: 
                 tag.name == "button" and
                 "in den warenkorb" in tag.get_text(strip=True).lower()
