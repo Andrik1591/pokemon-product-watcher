@@ -2,7 +2,7 @@ import os
 import time
 import requests
 from bs4 import BeautifulSoup
-from flask import Flask, jsonify
+from flask import Flask
 import threading
 
 # Telegram Setup
@@ -40,12 +40,14 @@ def is_product_available(url):
         response.raise_for_status()
         soup = BeautifulSoup(response.text, "html.parser")
 
+        # Mueller: Suche Button oder Link mit Text "In den Warenkorb"
         if "mueller.de" in url:
             button = soup.find(lambda tag: 
                                (tag.name == "button" or tag.name == "a") and
                                tag.get_text(strip=True).lower() == "in den warenkorb")
             return button is not None
 
+        # SmythsToys: Suche Button oder Link mit Text "In den Warenkorb legen" (oder ähnlich)
         elif "smythstoys.com" in url:
             button = soup.find(lambda tag: 
                                (tag.name == "button" or tag.name == "a") and
@@ -56,6 +58,7 @@ def is_product_available(url):
             not_available = soup.find(text=lambda t: t and "momentan nicht verfügbar" in t.lower())
             return not not_available
 
+        # MediaMarkt: Suche Button oder Link mit Text "In den Warenkorb"
         elif "mediamarkt.de" in url:
             button = soup.find(lambda tag: 
                                (tag.name == "button" or tag.name == "a") and
@@ -66,6 +69,7 @@ def is_product_available(url):
             return not not_available
 
         else:
+            # Für andere Shops einfach auf Statuscode achten (z.B. 200 = verfügbar)
             return response.status_code == 200
 
     except Exception as e:
@@ -91,16 +95,13 @@ def index():
     return "Produktüberwachung läuft!"
 
 @app.route("/health")
-def health():
-    # Einfach nur ein 200 OK mit JSON-Antwort, damit UptimeRobot prüfen kann
-    return jsonify(status="ok", message="Service läuft")
+def health_check():
+    return "OK"
 
 if __name__ == "__main__":
-    # Überwachungsthread starten
     thread = threading.Thread(target=check_availability)
     thread.daemon = True
     thread.start()
 
-    # Webserver starten (blockiert Hauptthread, läuft parallel zur Überwachung)
     port = int(os.environ.get("PORT", 8080))
     app.run(host="0.0.0.0", port=port)
