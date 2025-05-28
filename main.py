@@ -61,30 +61,14 @@ def is_product_available(url):
             return button is not None
 
         elif "smythstoys.com" in url:
-            # Suche nach Button oder Link mit "In den Warenkorb"
-            candidates = soup.find_all(lambda tag:
-                (tag.name == "button" or tag.name == "a") and
-                "in den warenkorb" in tag.get_text(strip=True).lower()
-            )
-            print(f"[DEBUG] Smyths: Gefundene Buttons/Links mit 'In den Warenkorb': {len(candidates)}")
-
-            for btn in candidates:
-                # Prüfe ob disabled-Attribut existiert
-                if btn.has_attr("disabled"):
-                    print("[DEBUG] Smyths: Button ist disabled.")
-                    continue
-                # Prüfe ob Klasse 'disabled' existiert
-                if "disabled" in btn.get("class", []):
-                    print("[DEBUG] Smyths: Button hat 'disabled' Klasse.")
-                    continue
-                # Prüfe ob aria-disabled="true" gesetzt ist
-                if btn.get("aria-disabled", "false").lower() == "true":
-                    print("[DEBUG] Smyths: Button hat aria-disabled=true.")
-                    continue
-                print("[DEBUG] Smyths: Produkt verfügbar!")
-                return True
-
-            print("[DEBUG] Smyths: Kein verfügbarer 'In den Warenkorb' Button gefunden.")
+            product_container = soup.find("div", {"data-scope": "pdp.addToCart"})
+            if product_container:
+                text_content = product_container.get_text(strip=True).lower()
+                print(f"[DEBUG] Smyths Produktbereich Text: {text_content}")
+                if "in den warenkorb" in text_content and "nicht verfügbar" not in text_content:
+                    print("[DEBUG] Smyths: Produkt verfügbar!")
+                    return True
+            print("[DEBUG] Smyths: Produkt nicht verfügbar.")
             return False
 
         elif "mediamarkt.de" in url:
