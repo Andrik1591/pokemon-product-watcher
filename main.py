@@ -61,14 +61,18 @@ def is_product_available(url):
             return button is not None
 
         elif "smythstoys.com" in url:
-            product_container = soup.find("div", {"data-scope": "pdp.addToCart"})
-            if product_container:
-                text_content = product_container.get_text(strip=True).lower()
-                print(f"[DEBUG] Smyths Produktbereich Text: {text_content}")
-                if "in den warenkorb" in text_content and "nicht verfügbar" not in text_content:
-                    print("[DEBUG] Smyths: Produkt verfügbar!")
+            # Neuer robuster Check für Smyths: Finde jeglichen sichtbaren Text "In den Warenkorb"
+            text_matches = soup.find_all(string=lambda text:
+                text and "in den warenkorb" in text.strip().lower()
+            )
+            for match in text_matches:
+                parent = match.parent
+                # Stelle sicher, dass der Text sichtbar ist (z. B. nicht in einem <script> oder <template>)
+                if parent.name not in ["script", "style", "template"]:
+                    print("[DEBUG] Smyths: Verfügbarkeitstext gefunden – Produkt verfügbar!")
                     return True
-            print("[DEBUG] Smyths: Produkt nicht verfügbar.")
+
+            print("[DEBUG] Smyths: Kein sichtbarer Verfügbarkeitstext gefunden – Produkt nicht verfügbar.")
             return False
 
         elif "mediamarkt.de" in url:
@@ -86,7 +90,6 @@ def is_product_available(url):
     except Exception as e:
         print(f"Fehler beim Prüfen der URL {url}: {e}")
         return False
-
 
 def check_availability():
     send_telegram_message("🔎 Produktüberwachung gestartet!")
