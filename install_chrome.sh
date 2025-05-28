@@ -1,22 +1,20 @@
 #!/bin/bash
+echo "Installing Chrome and ChromeDriver on Render..."
 
-# Chrome installieren auf Render (Debian/Ubuntu Basis)
+# Install Chrome dependencies
 apt-get update
-apt-get install -y wget unzip fontconfig locales
+apt-get install -y wget unzip
 
-# Chrome Stable herunterladen und installieren
+# Install Google Chrome Stable
 wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
-apt-get install -y ./google-chrome-stable_current_amd64.deb
+dpkg -i google-chrome-stable_current_amd64.deb || apt-get install -f -y
 
-# Chrome-Treiber für Selenium
-CHROME_DRIVER_VERSION=$(curl -sS https://chromedriver.storage.googleapis.com/LATEST_RELEASE)
-wget https://chromedriver.storage.googleapis.com/${CHROME_DRIVER_VERSION}/chromedriver_linux64.zip
+# Download ChromeDriver matching Chrome version
+CHROME_VERSION=$(google-chrome --version | grep -oP '\d+\.\d+\.\d+')
+CHROMEDRIVER_VERSION=$(curl -s "https://chromedriver.storage.googleapis.com/LATEST_RELEASE_$CHROME_VERSION")
+wget -N https://chromedriver.storage.googleapis.com/${CHROMEDRIVER_VERSION}/chromedriver_linux64.zip
 unzip chromedriver_linux64.zip
-mv chromedriver /usr/local/bin/
-chmod +x /usr/local/bin/chromedriver
-
-# Aufräumen
-rm google-chrome-stable_current_amd64.deb
-rm chromedriver_linux64.zip
+chmod +x chromedriver
+mv chromedriver ./chromedriver_render
 
 echo "Chrome und ChromeDriver wurden installiert."
