@@ -61,23 +61,28 @@ def is_product_available(url):
             return button is not None
 
         elif "smythstoys.com" in url:
-    # Suche alle Buttons mit dem Text "In den Warenkorb"
+            # Suche alle Buttons mit dem Text "In den Warenkorb"
             buttons = soup.find_all("button", string=lambda text: text and "in den warenkorb" in text.lower())
 
             print(f"[DEBUG] Smyths: Gefundene Buttons mit 'In den Warenkorb': {len(buttons)}")
 
             for btn in buttons:
-        # Prüfe, ob Button deaktiviert ist
+                # Prüfe, ob Button deaktiviert ist
                 classes = btn.get("class", [])
                 aria_disabled = btn.get("aria-disabled", "").lower()
                 if "disabled" in classes or aria_disabled == "true":
                     print("[DEBUG] Smyths: Button ist deaktiviert.")
                     continue
 
-                print("[DEBUG] Smyths: Button aktiv → Produkt verfügbar!")
-                return True
+                # Prüfe, ob Button grün ist
+                is_green = any(c.startswith("bg-green") for c in classes)
+                if is_green:
+                    print("[DEBUG] Smyths: Grüner aktiver Button → Produkt verfügbar!")
+                    return True
+                else:
+                    print("[DEBUG] Smyths: Kein grüner Button – möglicherweise nicht verfügbar.")
 
-            print("[DEBUG] Smyths: Kein aktiver 'In den Warenkorb'-Button gefunden.")
+            print("[DEBUG] Smyths: Kein aktiver grüner 'In den Warenkorb'-Button gefunden.")
             return False
 
         elif "mediamarkt.de" in url:
