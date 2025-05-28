@@ -4,7 +4,11 @@ import random  # NEU hinzugefügt
 import requests
 from bs4 import BeautifulSoup
 from flask import Flask
-import threading 
+import threading
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.by import By
+from webdriver_manager.chrome import ChromeDriverManager
 
 # Telegram Setup
 TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
@@ -48,51 +52,66 @@ def send_telegram_message(text):
 
 def is_product_available(url):
     try:
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:117.0) Gecko/20100101 Firefox/117.0"
-        }
-        response = requests.get(url, headers=headers)
-        response.raise_for_status()
-        soup = BeautifulSoup(response.text, "html.parser")
+        if "smythstoys.com" in url:
+            print("[INFO] Verwende Selenium für Smyths")
 
-        if "mueller.de" in url:
-            button = soup.find(lambda tag:
-                               (tag.name == "button" or tag.name == "a") and
-                               tag.get_text(strip=True).lower() == "in den warenkorb")
-            return button is not None
+            chrome_options = Options()
+            chrome_options.add_argument("--headless=new")
+            chrome_options.add_argument("--disable-gpu")
+            chrome_options.add_argument("--no-sandbox")
+            chrome_options.add_argument("--disable-dev-shm-usage")
 
-        elif "smythstoys.com" in url:
-            # Suche alle Buttons mit dem Text "In den Warenkorb"
-            buttons = soup.find_all("button", string=lambda text: text and "in den warenkorb" in text.lower())
+            driver = webdriver.Chrome(ChromeDriverManager().install(), options=chrome_options)
+            driver.get(url)
+            time.sleep(3)  # kurz warten, bis Seite geladen ist
 
+            buttons = driver.find_elements(By.XPATH, "//button[contains(translate(text(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÜ', 'abcdefghijklmnopqrstuvwxyzäöü'), 'in den warenkorb')]")
             print(f"[DEBUG] Smyths: Gefundene Buttons mit 'In den Warenkorb': {len(buttons)}")
 
             for btn in buttons:
-                classes = btn.get("class", [])
-                is_disabled = btn.has_attr("disabled")
+                classlist = btn.get_attribute("class")
+                is_disabled = btn.get_attribute("disabled") is not None
+                print(f"[DEBUG] Button-Klassen: {classlist}, disabled={is_disabled}")
 
-                # Prüfe ob Button deaktiviert oder grau ist
-                if "cursor-not-allowed" in classes or "bg-grey-300" in classes or is_disabled:
+                if is_disabled or "cursor-not-allowed" in classlist or "bg-grey" in classlist:
                     print("[DEBUG] Smyths: Button ist deaktiviert oder grau.")
                     continue
 
-                print("[DEBUG] Smyths: Button ist aktiv → Produkt verfügbar!")
-                return True
+                if "bg-green" in classlist or "bg-green-500" in classlist or "text-white" in classlist:
+                    print("[DEBUG] Smyths: Grüner aktiver Button → Produkt verfügbar!")
+                    driver.quit()
+                    return True
+                else:
+                    print("[DEBUG] Smyths: Kein grüner Button – möglicherweise nicht verfügbar.")
 
-            print("[DEBUG] Smyths: Kein aktiver 'In den Warenkorb'-Button gefunden.")
+            driver.quit()
             return False
 
-        elif "mediamarkt.de" in url:
-            button = soup.find(lambda tag:
-                               (tag.name == "button" or tag.name == "a") and
-                               "in den warenkorb" in tag.get_text(strip=True).lower())
-            if button:
-                return True
-            not_available = soup.find(text=lambda t: t and "nicht verfügbar" in t.lower())
-            return not not_available
+        elif "mueller.de" in url or "mediamarkt.de" in url:
+            headers = {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:117.0) Gecko/20100101 Firefox/117.0"
+            }
+            response = requests.get(url, headers=headers)
+            response.raise_for_status()
+            soup = BeautifulSoup(response.text, "html.parser")
+
+            if "mueller.de" in url:
+                button = soup.find(lambda tag:
+                                   (tag.name == "button" or tag.name == "a") and
+                                   tag.get_text(strip=True).lower() == "in den warenkorb")
+                return button is not None
+
+            if "mediamarkt.de" in url:
+                button = soup.find(lambda tag:
+                                   (tag.name == "button" or tag.name == "a") and
+                                   "in den warenkorb" in tag.get_text(strip=True).lower())
+                if button:
+                    return True
+                not_available = soup.find(text=lambda t: t and "nicht verfügbar" in t.lower())
+                return not not_available
 
         else:
-            return response.status_code == 200
+            return False
 
     except Exception as e:
         print(f"Fehler beim Prüfen der URL {url}: {e}")
