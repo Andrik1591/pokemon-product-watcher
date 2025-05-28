@@ -55,27 +55,34 @@ def is_product_available(url):
             print("[INFO] Verwende Selenium für Smyths")
 
             chrome_options = Options()
-            chrome_options.add_argument("--headless=new")
+            chrome_options.add_argument("--headless=new")  # neues Headless-Modell (Chrome 109+)
             chrome_options.add_argument("--disable-gpu")
             chrome_options.add_argument("--no-sandbox")
             chrome_options.add_argument("--disable-dev-shm-usage")
 
             driver = webdriver.Chrome(ChromeDriverManager().install(), options=chrome_options)
             driver.get(url)
-            time.sleep(3)  # kurz warten, bis Seite geladen ist
+            time.sleep(4)  # etwas länger warten, Ladezeiten können variieren
 
-            buttons = driver.find_elements(By.XPATH, "//button[contains(translate(text(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÜ', 'abcdefghijklmnopqrstuvwxyzäöü'), 'in den warenkorb')]")
+            buttons = driver.find_elements(
+                By.XPATH,
+                "//button[contains(translate(text(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÜ', 'abcdefghijklmnopqrstuvwxyzäöü'), 'in den warenkorb')]"
+            )
             print(f"[DEBUG] Smyths: Gefundene Buttons mit 'In den Warenkorb': {len(buttons)}")
 
             for btn in buttons:
                 classlist = btn.get_attribute("class")
                 is_disabled = btn.get_attribute("disabled") is not None
-                print(f"[DEBUG] Button-Klassen: {classlist}, disabled={is_disabled}")
+                aria_disabled = btn.get_attribute("aria-disabled") == "true"
 
-                if is_disabled or "cursor-not-allowed" in classlist or "bg-grey" in classlist:
+                print(f"[DEBUG] Button-Klassen: {classlist}, disabled={is_disabled}, aria-disabled={aria_disabled}")
+
+                # Prüfe deaktiviert/grau (disable oder aria-disabled) und Klassen
+                if is_disabled or aria_disabled or "cursor-not-allowed" in classlist or "bg-grey" in classlist:
                     print("[DEBUG] Smyths: Button ist deaktiviert oder grau.")
                     continue
 
+                # Prüfe ob Button grün (verfügbar)
                 if "bg-green" in classlist or "bg-green-500" in classlist or "text-white" in classlist:
                     print("[DEBUG] Smyths: Grüner aktiver Button → Produkt verfügbar!")
                     driver.quit()
