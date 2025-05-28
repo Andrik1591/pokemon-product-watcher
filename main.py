@@ -53,7 +53,6 @@ def is_product_available(url):
         response = requests.get(url, headers=headers)
         response.raise_for_status()
         soup = BeautifulSoup(response.text, "html.parser")
-        page_text = soup.get_text(separator=" ").lower()
 
         if "mueller.de" in url:
             button = soup.find(lambda tag:
@@ -62,13 +61,31 @@ def is_product_available(url):
             return button is not None
 
         elif "smythstoys.com" in url:
-            # Prüft auf sichtbaren Text "In den Warenkorb", egal in welchem Element
-            if "in den warenkorb" in page_text and "nicht verfügbar" not in page_text:
-                print("[DEBUG] Smyths: 'In den Warenkorb' gefunden.")
+            # Suche nach Button oder Link mit "In den Warenkorb"
+            candidates = soup.find_all(lambda tag:
+                (tag.name == "button" or tag.name == "a") and
+                "in den warenkorb" in tag.get_text(strip=True).lower()
+            )
+            print(f"[DEBUG] Smyths: Gefundene Buttons/Links mit 'In den Warenkorb': {len(candidates)}")
+
+            for btn in candidates:
+                # Prüfe ob disabled-Attribut existiert
+                if btn.has_attr("disabled"):
+                    print("[DEBUG] Smyths: Button ist disabled.")
+                    continue
+                # Prüfe ob Klasse 'disabled' existiert
+                if "disabled" in btn.get("class", []):
+                    print("[DEBUG] Smyths: Button hat 'disabled' Klasse.")
+                    continue
+                # Prüfe ob aria-disabled="true" gesetzt ist
+                if btn.get("aria-disabled", "false").lower() == "true":
+                    print("[DEBUG] Smyths: Button hat aria-disabled=true.")
+                    continue
+                print("[DEBUG] Smyths: Produkt verfügbar!")
                 return True
-            else:
-                print("[DEBUG] Smyths: Kein 'In den Warenkorb' oder 'nicht verfügbar' gefunden.")
-                return False
+
+            print("[DEBUG] Smyths: Kein verfügbarer 'In den Warenkorb' Button gefunden.")
+            return False
 
         elif "mediamarkt.de" in url:
             button = soup.find(lambda tag:
@@ -85,6 +102,7 @@ def is_product_available(url):
     except Exception as e:
         print(f"Fehler beim Prüfen der URL {url}: {e}")
         return False
+
 
 def check_availability():
     send_telegram_message("🔎 Produktüberwachung gestartet!")
