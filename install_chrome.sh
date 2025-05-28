@@ -1,19 +1,22 @@
 #!/bin/bash
-set -e
 
-# Update und benötigte Tools installieren
+# Chrome installieren auf Render (Debian/Ubuntu Basis)
 apt-get update
-apt-get install -y wget gnupg
+apt-get install -y wget unzip fontconfig locales
 
-# Google Chrome Signing Key hinzufügen
-wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | apt-key add -
+# Chrome Stable herunterladen und installieren
+wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+apt-get install -y ./google-chrome-stable_current_amd64.deb
 
-# Google Chrome Repo hinzufügen
-echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list
+# Chrome-Treiber für Selenium
+CHROME_DRIVER_VERSION=$(curl -sS https://chromedriver.storage.googleapis.com/LATEST_RELEASE)
+wget https://chromedriver.storage.googleapis.com/${CHROME_DRIVER_VERSION}/chromedriver_linux64.zip
+unzip chromedriver_linux64.zip
+mv chromedriver /usr/local/bin/
+chmod +x /usr/local/bin/chromedriver
 
-# Chrome installieren
-apt-get update
-apt-get install -y google-chrome-stable
+# Aufräumen
+rm google-chrome-stable_current_amd64.deb
+rm chromedriver_linux64.zip
 
-# Berechtigungen setzen
-chmod +x /usr/bin/google-chrome
+echo "Chrome und ChromeDriver wurden installiert."
