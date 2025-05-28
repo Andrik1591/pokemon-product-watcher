@@ -67,22 +67,18 @@ def is_product_available(url):
             print(f"[DEBUG] Smyths: Gefundene Buttons mit 'In den Warenkorb': {len(buttons)}")
 
             for btn in buttons:
-                # Prüfe, ob Button deaktiviert ist
                 classes = btn.get("class", [])
-                aria_disabled = btn.get("aria-disabled", "").lower()
-                if "disabled" in classes or aria_disabled == "true":
-                    print("[DEBUG] Smyths: Button ist deaktiviert.")
+                is_disabled = btn.has_attr("disabled")
+
+                # Prüfe ob Button deaktiviert oder grau ist
+                if "cursor-not-allowed" in classes or "bg-grey-300" in classes or is_disabled:
+                    print("[DEBUG] Smyths: Button ist deaktiviert oder grau.")
                     continue
 
-                # Prüfe, ob Button grün ist
-                is_green = any(c.startswith("bg-green") for c in classes)
-                if is_green:
-                    print("[DEBUG] Smyths: Grüner aktiver Button → Produkt verfügbar!")
-                    return True
-                else:
-                    print("[DEBUG] Smyths: Kein grüner Button – möglicherweise nicht verfügbar.")
+                print("[DEBUG] Smyths: Button ist aktiv → Produkt verfügbar!")
+                return True
 
-            print("[DEBUG] Smyths: Kein aktiver grüner 'In den Warenkorb'-Button gefunden.")
+            print("[DEBUG] Smyths: Kein aktiver 'In den Warenkorb'-Button gefunden.")
             return False
 
         elif "mediamarkt.de" in url:
