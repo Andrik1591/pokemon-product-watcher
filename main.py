@@ -56,7 +56,8 @@ def is_product_available(url):
             print("[INFO] Verwende Selenium für Smyths")
 
             chrome_options = Options()
-            chrome_options.binary_location = "/usr/bin/chromium-browser"  # Pfad zu Chromium in Render
+            # 🔧 WICHTIG: Binary location von der Render-Chrome-Installation
+            chrome_options.binary_location = "/opt/render/project/.render/chrome/opt/google/chrome/chrome"
 
             chrome_options.add_argument("--headless=new")
             chrome_options.add_argument("--disable-gpu")
@@ -64,8 +65,8 @@ def is_product_available(url):
             chrome_options.add_argument("--disable-dev-shm-usage")
             chrome_options.add_argument("--window-size=1920,1080")
 
-            service = Service(ChromeDriverManager().install())
-            driver = webdriver.Chrome(service=service, options=chrome_options)
+            # 🔧 Verwende globalen ChromeDriver (bereits installiert in render-build.sh)
+            driver = webdriver.Chrome(options=chrome_options)
 
             driver.get(url)
             time.sleep(4)
