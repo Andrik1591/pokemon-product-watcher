@@ -9,6 +9,7 @@ from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.chrome.service import Service
 
 # Telegram Setup
 TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
@@ -55,42 +56,37 @@ def is_product_available(url):
             print("[INFO] Verwende Selenium für Smyths")
 
             chrome_options = Options()
-            chrome_options.add_argument("--headless=new")  # neues Headless-Modell (Chrome 109+)
+            chrome_options.add_argument("--headless=new")
             chrome_options.add_argument("--disable-gpu")
             chrome_options.add_argument("--no-sandbox")
             chrome_options.add_argument("--disable-dev-shm-usage")
+            chrome_options.add_argument("--window-size=1920,1080")
 
-            driver = webdriver.Chrome(ChromeDriverManager().install(), options=chrome_options)
+            driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
             driver.get(url)
-            time.sleep(4)  # etwas länger warten, Ladezeiten können variieren
+            time.sleep(4)
 
-            buttons = driver.find_elements(
-                By.XPATH,
-                "//button[contains(translate(text(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÜ', 'abcdefghijklmnopqrstuvwxyzäöü'), 'in den warenkorb')]"
-            )
-            print(f"[DEBUG] Smyths: Gefundene Buttons mit 'In den Warenkorb': {len(buttons)}")
+            buttons = driver.find_elements(By.XPATH, "//button[contains(translate(text(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÜ', 'abcdefghijklmnopqrstuvwxyzäöü'), 'in den warenkorb')]")
+            print(f"[DEBUG] Smyths: Gefundene Buttons: {len(buttons)}")
 
             for btn in buttons:
                 classlist = btn.get_attribute("class")
                 is_disabled = btn.get_attribute("disabled") is not None
                 aria_disabled = btn.get_attribute("aria-disabled") == "true"
 
-                print(f"[DEBUG] Button-Klassen: {classlist}, disabled={is_disabled}, aria-disabled={aria_disabled}")
+                print(f"[DEBUG] Button Klassen: {classlist}, disabled: {is_disabled}, aria-disabled: {aria_disabled}")
 
-                # Prüfe deaktiviert/grau (disable oder aria-disabled) und Klassen
                 if is_disabled or aria_disabled or "cursor-not-allowed" in classlist or "bg-grey" in classlist:
                     print("[DEBUG] Smyths: Button ist deaktiviert oder grau.")
                     continue
 
-                # Prüfe ob Button grün (verfügbar)
                 if "bg-green" in classlist or "bg-green-500" in classlist or "text-white" in classlist:
-                    print("[DEBUG] Smyths: Grüner aktiver Button → Produkt verfügbar!")
+                    print("[DEBUG] Smyths: Produkt verfügbar!")
                     driver.quit()
                     return True
-                else:
-                    print("[DEBUG] Smyths: Kein grüner Button – möglicherweise nicht verfügbar.")
 
             driver.quit()
+            print("[DEBUG] Smyths: Produkt nicht verfügbar.")
             return False
 
         elif "mueller.de" in url or "mediamarkt.de" in url:
