@@ -34,8 +34,12 @@ PRODUCT_URLS = [
     "https://www.mediamarkt.de/de/product/_pokemon-41094-team-rockets-mewtu-ex-kollekt-mbe6-sammelkarten-2988492.html",
     "https://www.mediamarkt.de/de/product/_pokemon-11369-pkm-kp105-top-trainer-box-z-sammelkartenspiel-2992653.html",
     "https://www.mediamarkt.de/de/product/_pokemon-11364-pkm-kp105-top-trainer-box-weiss-sammelkartenspiel-2992652.html",
-    "https://www.mediamarkt.de/de/product/_pokemon-11401-pkm-kp105-poster-kollektion-sammelkartenspiel-2992656.html"
+    "https://www.mediamarkt.de/de/product/_pokemon-11401-pkm-kp105-poster-kollektion-sammelkartenspiel-2992656.html",
+    "https://www.pokemoncenter.com/product/100-10653/pokemon-tcg-scarlet-and-violet-destined-rivals-pokemon-center-elite-trainer-box",
+    "https://www.pokemoncenter.com/product/100-10019/pokemon-tcg-scarlet-and-violet-prismatic-evolutions-pokemon-center-elite-trainer-box",
+    "https://www.pokemoncenter.com/product/10-10027-101/pokemon-tcg-scarlet-and-violet-prismatic-evolutions-super-premium-collection",
     #test links
+    "https://www.pokemoncenter.com/product/70-10312-101/ralts-kirlia-gardevoir-and-mega-gardevoir-pokemon-pixel-pins-4-pack"
     #"https://www.mueller.de/p/pokemon-adventskalender-2021-2726315/",
     #"https://www.smythstoys.com/de/de-de/spielzeug/plueschtiere-und-kuscheltiere/kuscheltiere/pokemon-plueschtiere/pokemon-kuscheltier-glurak-30-cm/p/172049",
     #"https://www.mediamarkt.de/de/product/_the-pokemon-company-int-45935-pkm-kp07-stellarkrone-booster-sammelkarten-2951644.html"
