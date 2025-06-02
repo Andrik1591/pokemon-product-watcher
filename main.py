@@ -57,18 +57,14 @@ def is_product_available(url):
             print("[INFO] Verwende Selenium für Smyths")
 
             chrome_options = Options()
-            # 🔧 WICHTIG: Binary location von der Render-Chrome-Installation
             chrome_options.binary_location = "/opt/render/project/.render/chrome/opt/google/chrome/chrome"
-
             chrome_options.add_argument("--headless=new")
             chrome_options.add_argument("--disable-gpu")
             chrome_options.add_argument("--no-sandbox")
             chrome_options.add_argument("--disable-dev-shm-usage")
             chrome_options.add_argument("--window-size=1920,1080")
 
-            # 🔧 Verwende globalen ChromeDriver (bereits installiert in render-build.sh)
             driver = webdriver.Chrome(options=chrome_options)
-
             driver.get(url)
             time.sleep(4)
 
@@ -95,7 +91,7 @@ def is_product_available(url):
             print("[DEBUG] Smyths: Produkt nicht verfügbar.")
             return False
 
-        elif "mueller.de" in url or "mediamarkt.de" in url:
+        elif "mueller.de" in url or "mediamarkt.de" in url or "pokemoncenter.com" in url:
             headers = {
                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:117.0) Gecko/20100101 Firefox/117.0"
             }
@@ -117,6 +113,19 @@ def is_product_available(url):
                     return True
                 not_available = soup.find(text=lambda t: t and "nicht verfügbar" in t.lower())
                 return not not_available
+
+            if "pokemoncenter.com" in url:
+                buttons = soup.find_all("button")
+                for btn in buttons:
+                    text = btn.get_text(strip=True).upper()
+                    if "ADD TO CART" in text:
+                        print("[DEBUG] PokemonCenter: Produkt verfügbar!")
+                        return True
+                    if "UNAVAILABLE" in text:
+                        print("[DEBUG] PokemonCenter: Produkt nicht verfügbar.")
+                        return False
+                print("[DEBUG] PokemonCenter: Kein relevanter Button gefunden.")
+                return False
 
         else:
             return False
