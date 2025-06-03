@@ -59,7 +59,7 @@ def send_telegram_message(text):
 
 def is_product_available(url):
     try:
-        if "smythstoys.com" in url or "pokemoncenter.com" in url:
+        if "smythstoys.com" in url:
             print(f"[INFO] Verwende Selenium für: {url}")
 
             chrome_options = Options()
@@ -74,66 +74,42 @@ def is_product_available(url):
             driver.get(url)
 
             result = False
+            print("[INFO] Smyths: Seite geladen, warte auf Button...")
 
-            if "smythstoys.com" in url:
-                print("[INFO] Smyths: Seite geladen, warte auf Button...")
-
-                try:
-                    WebDriverWait(driver, 10).until(
-                        EC.presence_of_element_located((By.XPATH,
-                            "//button[contains(translate(text(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÜ', 'abcdefghijklmnopqrstuvwxyzäöü'), 'in den warenkorb')]"
-                        ))
-                    )
-                except:
-                    print("[WARN] Smyths: Kein Button gefunden – evtl. zu langsam geladen?")
-                    driver.save_screenshot("smyths_debug.png")
-                    driver.quit()
-                    return False
-
-                buttons = driver.find_elements(By.XPATH,
-                    "//button[contains(translate(text(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÜ', 'abcdefghijklmnopqrstuvwxyzäöü'), 'in den warenkorb')]"
+            try:
+                WebDriverWait(driver, 10).until(
+                    EC.presence_of_element_located((By.XPATH,
+                        "//button[contains(translate(text(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÜ', 'abcdefghijklmnopqrstuvwxyzäöü'), 'in den warenkorb')]"
+                    ))
                 )
-                print(f"[DEBUG] Smyths: Gefundene Buttons: {len(buttons)}")
+            except:
+                print("[WARN] Smyths: Kein Button gefunden – evtl. zu langsam geladen?")
+                driver.save_screenshot("smyths_debug.png")
+                driver.quit()
+                return False
 
-                for btn in buttons:
-                    classlist = btn.get_attribute("class")
-                    is_disabled = btn.get_attribute("disabled") is not None
-                    aria_disabled = btn.get_attribute("aria-disabled") == "true"
-                    print(f"[DEBUG] Button Klassen: {classlist}, disabled: {is_disabled}, aria-disabled: {aria_disabled}")
+            buttons = driver.find_elements(By.XPATH,
+                "//button[contains(translate(text(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÜ', 'abcdefghijklmnopqrstuvwxyzäöü'), 'in den warenkorb')]"
+            )
+            print(f"[DEBUG] Smyths: Gefundene Buttons: {len(buttons)}")
 
-                    if is_disabled or aria_disabled or "cursor-not-allowed" in classlist or "bg-grey" in classlist:
-                        continue
-                    if "bg-green" in classlist or "bg-green-500" in classlist or "text-white" in classlist:
-                        print("[DEBUG] Smyths: Produkt verfügbar!")
-                        result = True
-                        break
+            for btn in buttons:
+                classlist = btn.get_attribute("class")
+                is_disabled = btn.get_attribute("disabled") is not None
+                aria_disabled = btn.get_attribute("aria-disabled") == "true"
+                print(f"[DEBUG] Button Klassen: {classlist}, disabled: {is_disabled}, aria-disabled: {aria_disabled}")
 
-            elif "pokemoncenter.com" in url:
-                print("[INFO] Pokemoncenter: Seite geladen, suche nach Add-to-Cart-Button...")
-
-                time.sleep(2)  # kleine Wartezeit zur Sicherheit
-                buttons = driver.find_elements(By.XPATH, "//button[contains(@class, 'add-to-cart-button')]")
-                print(f"[DEBUG] Pokemoncenter: Gefundene Buttons: {len(buttons)}")
-
-                for btn in buttons:
-                    text = btn.text.strip().upper()
-                    classlist = btn.get_attribute("class")
-                    is_disabled = btn.get_attribute("disabled") is not None
-                    print(f"[DEBUG] Button Text: {text}, Klassen: {classlist}, disabled: {is_disabled}")
-
-                    if "ADD TO CART" in text and not is_disabled and "disabled" not in classlist:
-                        print("[DEBUG] Pokemoncenter: Produkt verfügbar!")
-                        result = True
-                        break
-                    elif "UNAVAILABLE" in text or is_disabled or "disabled" in classlist:
-                        print("[DEBUG] Pokemoncenter: Produkt nicht verfügbar.")
-                        result = False
-                        break
+                if is_disabled or aria_disabled or "cursor-not-allowed" in classlist or "bg-grey" in classlist:
+                    continue
+                if "bg-green" in classlist or "bg-green-500" in classlist or "text-white" in classlist:
+                    print("[DEBUG] Smyths: Produkt verfügbar!")
+                    result = True
+                    break
 
             driver.quit()
             return result
 
-        elif "mueller.de" in url or "mediamarkt.de" in url:
+        elif any(site in url for site in ["mueller.de", "mediamarkt.de", "pokemoncenter.com"]):
             print(f"[INFO] Prüfe via BeautifulSoup für: {url}")
 
             headers = {
@@ -161,6 +137,22 @@ def is_product_available(url):
                 print(f"[DEBUG] MediaMarkt: nicht verfügbar gefunden? {not_available is not None}")
                 return not not_available
 
+            if "pokemoncenter.com" in url:
+                print("[INFO] Pokemoncenter: Prüfe auf 'Add to Cart'...")
+
+                button = soup.find("button", class_=lambda c: c and "add-to-cart-button" in c)
+                if button:
+                    text = button.get_text(strip=True).upper()
+                    print(f"[DEBUG] Pokemoncenter Button Text: {text}")
+                    if "ADD TO CART" in text:
+                        print("[DEBUG] Pokemoncenter: Produkt verfügbar!")
+                        return True
+                    elif "SOLD OUT" in text or "UNAVAILABLE" in text:
+                        print("[DEBUG] Pokemoncenter: Produkt nicht verfügbar.")
+                        return False
+                print("[DEBUG] Pokemoncenter: Kein relevanter Button gefunden.")
+                return False
+
         else:
             print(f"[WARN] Keine Regel für URL: {url}")
             return False
@@ -168,7 +160,7 @@ def is_product_available(url):
     except Exception as e:
         print(f"[ERROR] Fehler beim Prüfen der URL {url}: {e}")
         return False
-
+        
 
 def check_availability():
     send_telegram_message("🔎 Produktüberwachung gestartet!")
