@@ -1,5 +1,6 @@
 import requests
 from bs4 import BeautifulSoup
+import re  # Für regulären Ausdruck
 
 def check_pokemoncenter_product(url):
     print(f"[INFO] Prüfe URL: {url}")
@@ -16,7 +17,8 @@ def check_pokemoncenter_product(url):
         soup = BeautifulSoup(response.text, "html.parser")
 
         print("[INFO] Suche nach Add-to-Cart-Button...")
-        button = soup.find("button", class_=lambda c: c and "add-to-cart-button" in c)
+        # Suche mit Regex-Klasse
+        button = soup.find("button", class_=re.compile(r"add-to-cart-button"))
 
         if button:
             text = button.get_text(strip=True).upper()
