@@ -109,9 +109,8 @@ def is_product_available(url):
             driver.quit()
             return result
 
-        elif any(site in url for site in ["mueller.de", "mediamarkt.de", "pokemoncenter.com"]):
+        elif "mueller.de" in url:
             print(f"[INFO] Prüfe via BeautifulSoup für: {url}")
-
             headers = {
                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:117.0) Gecko/20100101 Firefox/117.0"
             }
@@ -119,39 +118,54 @@ def is_product_available(url):
             response.raise_for_status()
             soup = BeautifulSoup(response.text, "html.parser")
 
-            if "mueller.de" in url:
-                button = soup.find(lambda tag:
-                    (tag.name == "button" or tag.name == "a") and
-                    tag.get_text(strip=True).lower() == "in den warenkorb")
-                print(f"[DEBUG] Müller: Button gefunden? {button is not None}")
-                return button is not None
+            button = soup.find(lambda tag:
+                (tag.name == "button" or tag.name == "a") and
+                tag.get_text(strip=True).lower() == "in den warenkorb")
+            print(f"[DEBUG] Müller: Button gefunden? {button is not None}")
+            return button is not None
 
-            if "mediamarkt.de" in url:
-                button = soup.find(lambda tag:
-                    (tag.name == "button" or tag.name == "a") and
-                    "in den warenkorb" in tag.get_text(strip=True).lower())
-                if button:
-                    print("[DEBUG] MediaMarkt: Produkt verfügbar.")
+        elif "mediamarkt.de" in url:
+            print(f"[INFO] Prüfe via BeautifulSoup für: {url}")
+            headers = {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:117.0) Gecko/20100101 Firefox/117.0"
+            }
+            response = requests.get(url, headers=headers)
+            response.raise_for_status()
+            soup = BeautifulSoup(response.text, "html.parser")
+
+            button = soup.find(lambda tag:
+                (tag.name == "button" or tag.name == "a") and
+                "in den warenkorb" in tag.get_text(strip=True).lower())
+            if button:
+                print("[DEBUG] MediaMarkt: Produkt verfügbar.")
+                return True
+            not_available = soup.find(text=lambda t: t and "nicht verfügbar" in t.lower())
+            print(f"[DEBUG] MediaMarkt: nicht verfügbar gefunden? {not_available is not None}")
+            return not not_available
+
+        elif "pokemoncenter.com" in url:
+            print(f"[INFO] Prüfe via BeautifulSoup für: {url}")
+            headers = {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:117.0) Gecko/20100101 Firefox/117.0"
+            }
+            response = requests.get(url, headers=headers)
+            response.raise_for_status()
+            soup = BeautifulSoup(response.text, "html.parser")
+
+            print("[INFO] Pokemoncenter: Prüfe auf 'Add to Cart'...")
+
+            button = soup.find("button", class_=lambda c: c and "add-to-cart-button" in c)
+            if button:
+                text = button.get_text(strip=True).upper()
+                print(f"[DEBUG] Pokemoncenter Button Text: {text}")
+                if "ADD TO CART" in text:
+                    print("[DEBUG] Pokemoncenter: Produkt verfügbar!")
                     return True
-                not_available = soup.find(text=lambda t: t and "nicht verfügbar" in t.lower())
-                print(f"[DEBUG] MediaMarkt: nicht verfügbar gefunden? {not_available is not None}")
-                return not not_available
-
-            if "pokemoncenter.com" in url:
-                print("[INFO] Pokemoncenter: Prüfe auf 'Add to Cart'...")
-
-                button = soup.find("button", class_=lambda c: c and "add-to-cart-button" in c)
-                if button:
-                    text = button.get_text(strip=True).upper()
-                    print(f"[DEBUG] Pokemoncenter Button Text: {text}")
-                    if "ADD TO CART" in text:
-                        print("[DEBUG] Pokemoncenter: Produkt verfügbar!")
-                        return True
-                    elif "SOLD OUT" in text or "UNAVAILABLE" in text:
-                        print("[DEBUG] Pokemoncenter: Produkt nicht verfügbar.")
-                        return False
-                print("[DEBUG] Pokemoncenter: Kein relevanter Button gefunden.")
-                return False
+                elif "SOLD OUT" in text or "UNAVAILABLE" in text:
+                    print("[DEBUG] Pokemoncenter: Produkt nicht verfügbar.")
+                    return False
+            print("[DEBUG] Pokemoncenter: Kein relevanter Button gefunden.")
+            return False
 
         else:
             print(f"[WARN] Keine Regel für URL: {url}")
