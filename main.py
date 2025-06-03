@@ -10,6 +10,8 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 
 # Telegram Setup
 TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
@@ -70,12 +72,27 @@ def is_product_available(url):
 
             driver = webdriver.Chrome(options=chrome_options)
             driver.get(url)
-            time.sleep(4)  # ggf. anpassen, wenn Seite länger lädt
 
             result = False
 
             if "smythstoys.com" in url:
-                buttons = driver.find_elements(By.XPATH, "//button[contains(translate(text(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÜ', 'abcdefghijklmnopqrstuvwxyzäöü'), 'in den warenkorb')]")
+                print("[INFO] Smyths: Seite geladen, warte auf Button...")
+
+                try:
+                    WebDriverWait(driver, 10).until(
+                        EC.presence_of_element_located((By.XPATH,
+                            "//button[contains(translate(text(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÜ', 'abcdefghijklmnopqrstuvwxyzäöü'), 'in den warenkorb')]"
+                        ))
+                    )
+                except:
+                    print("[WARN] Smyths: Kein Button gefunden – evtl. zu langsam geladen?")
+                    driver.save_screenshot("smyths_debug.png")
+                    driver.quit()
+                    return False
+
+                buttons = driver.find_elements(By.XPATH,
+                    "//button[contains(translate(text(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÜ', 'abcdefghijklmnopqrstuvwxyzäöü'), 'in den warenkorb')]"
+                )
                 print(f"[DEBUG] Smyths: Gefundene Buttons: {len(buttons)}")
 
                 for btn in buttons:
@@ -92,6 +109,7 @@ def is_product_available(url):
                         break
 
             elif "pokemoncenter.com" in url:
+                time.sleep(4)  # Pokemoncenter benötigt evtl. keine komplexe Abfrage
                 buttons = driver.find_elements(By.TAG_NAME, "button")
                 print(f"[DEBUG] Pokemoncenter: Gefundene Buttons: {len(buttons)}")
 
@@ -145,7 +163,6 @@ def is_product_available(url):
     except Exception as e:
         print(f"[ERROR] Fehler beim Prüfen der URL {url}: {e}")
         return False
-
 
 def check_availability():
     send_telegram_message("🔎 Produktüberwachung gestartet!")
