@@ -109,18 +109,23 @@ def is_product_available(url):
                         break
 
             elif "pokemoncenter.com" in url:
-                time.sleep(4)  # Pokemoncenter benötigt evtl. keine komplexe Abfrage
-                buttons = driver.find_elements(By.TAG_NAME, "button")
+                print("[INFO] Pokemoncenter: Seite geladen, suche nach Add-to-Cart-Button...")
+
+                time.sleep(2)  # kleine Wartezeit zur Sicherheit
+                buttons = driver.find_elements(By.XPATH, "//button[contains(@class, 'add-to-cart-button')]")
                 print(f"[DEBUG] Pokemoncenter: Gefundene Buttons: {len(buttons)}")
 
                 for btn in buttons:
                     text = btn.text.strip().upper()
-                    print(f"[DEBUG] Button Text: {text}")
-                    if "ADD TO CART" in text:
+                    classlist = btn.get_attribute("class")
+                    is_disabled = btn.get_attribute("disabled") is not None
+                    print(f"[DEBUG] Button Text: {text}, Klassen: {classlist}, disabled: {is_disabled}")
+
+                    if "ADD TO CART" in text and not is_disabled and "disabled" not in classlist:
                         print("[DEBUG] Pokemoncenter: Produkt verfügbar!")
                         result = True
                         break
-                    if "UNAVAILABLE" in text:
+                    elif "UNAVAILABLE" in text or is_disabled or "disabled" in classlist:
                         print("[DEBUG] Pokemoncenter: Produkt nicht verfügbar.")
                         result = False
                         break
@@ -163,6 +168,7 @@ def is_product_available(url):
     except Exception as e:
         print(f"[ERROR] Fehler beim Prüfen der URL {url}: {e}")
         return False
+
 
 def check_availability():
     send_telegram_message("🔎 Produktüberwachung gestartet!")
