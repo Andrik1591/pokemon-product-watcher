@@ -1,41 +1,46 @@
-import requests
-from bs4 import BeautifulSoup
-import re  # Für regulären Ausdruck
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 
-def check_pokemoncenter_product(url):
-    print(f"[INFO] Prüfe URL: {url}")
-    
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:117.0) Gecko/20100101 Firefox/117.0"
-    }
-    
+def check_pokemoncenter_product_selenium(url):
+    print(f"[INFO] Prüfe mit Selenium URL: {url}")
+
+    chrome_options = Options()
+    chrome_options.add_argument("--headless=new")
+    chrome_options.add_argument("--disable-gpu")
+    chrome_options.add_argument("--no-sandbox")
+    chrome_options.add_argument("--disable-dev-shm-usage")
+    chrome_options.add_argument("--window-size=1920,1080")
+
+    driver = webdriver.Chrome(options=chrome_options)
+
     try:
-        response = requests.get(url, headers=headers)
-        print(f"[DEBUG] HTTP Status Code: {response.status_code}")
-        response.raise_for_status()
+        driver.get(url)
+        WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.TAG_NAME, "button"))
+        )
+        print("[INFO] Seite geladen. Suche nach Add-to-Cart-Button...")
 
-        soup = BeautifulSoup(response.text, "html.parser")
+        buttons = driver.find_elements(By.CLASS_NAME, "add-to-cart-button--PZmQF")
 
-        print("[INFO] Suche nach Add-to-Cart-Button...")
-        # Suche mit Regex-Klasse
-        button = soup.find("button", class_=re.compile(r"add-to-cart-button"))
-
-        if button:
-            text = button.get_text(strip=True).upper()
-            print(f"[DEBUG] Button-Text: '{text}'")
-            if "ADD TO CART" in text:
-                print("✅ Produkt ist VERFÜGBAR!")
-            elif "SOLD OUT" in text or "UNAVAILABLE" in text:
-                print("❌ Produkt ist NICHT verfügbar.")
-            else:
-                print("⚠️ Button-Text unklar.")
-        else:
+        if not buttons:
             print("❌ Kein Add-to-Cart-Button gefunden.")
-
+        else:
+            for btn in buttons:
+                text = btn.text.strip().upper()
+                print(f"[DEBUG] Button-Text: '{text}'")
+                if "ADD TO CART" in text:
+                    print("✅ Produkt ist VERFÜGBAR!")
+                    break
+            else:
+                print("❌ Kein verfügbarer Button gefunden.")
     except Exception as e:
-        print(f"[ERROR] Fehler beim Abrufen der Seite: {e}")
+        print(f"[ERROR] Fehler mit Selenium: {e}")
+    finally:
+        driver.quit()
 
-# Beispiel-URL (prüfe diese oder ersetze durch eine andere gültige)
+# Test
 test_url = "https://www.pokemoncenter.com/product/70-10312-101/ralts-kirlia-gardevoir-and-mega-gardevoir-pokemon-pixel-pins-4-pack"
-
-check_pokemoncenter_product(test_url)
+check_pokemoncenter_product_selenium(test_url)
