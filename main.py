@@ -58,7 +58,7 @@ def send_telegram_message(text):
 def is_product_available(url):
     try:
         if "smythstoys.com" in url or "pokemoncenter.com" in url:
-            print("[INFO] Verwende Selenium für:", url)
+            print(f"[INFO] Verwende Selenium für: {url}")
 
             chrome_options = Options()
             chrome_options.binary_location = "/opt/render/project/.render/chrome/opt/google/chrome/chrome"
@@ -70,11 +70,14 @@ def is_product_available(url):
 
             driver = webdriver.Chrome(options=chrome_options)
             driver.get(url)
-            time.sleep(4)  # ggf. erhöhen, falls Button zu spät lädt
+            time.sleep(4)  # ggf. anpassen, wenn Seite länger lädt
+
+            result = False
 
             if "smythstoys.com" in url:
                 buttons = driver.find_elements(By.XPATH, "//button[contains(translate(text(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÜ', 'abcdefghijklmnopqrstuvwxyzäöü'), 'in den warenkorb')]")
                 print(f"[DEBUG] Smyths: Gefundene Buttons: {len(buttons)}")
+
                 for btn in buttons:
                     classlist = btn.get_attribute("class")
                     is_disabled = btn.get_attribute("disabled") is not None
@@ -84,26 +87,32 @@ def is_product_available(url):
                     if is_disabled or aria_disabled or "cursor-not-allowed" in classlist or "bg-grey" in classlist:
                         continue
                     if "bg-green" in classlist or "bg-green-500" in classlist or "text-white" in classlist:
-                        driver.quit()
-                        return True
-                driver.quit()
-                return False
+                        print("[DEBUG] Smyths: Produkt verfügbar!")
+                        result = True
+                        break
 
             elif "pokemoncenter.com" in url:
                 buttons = driver.find_elements(By.TAG_NAME, "button")
+                print(f"[DEBUG] Pokemoncenter: Gefundene Buttons: {len(buttons)}")
+
                 for btn in buttons:
                     text = btn.text.strip().upper()
                     print(f"[DEBUG] Button Text: {text}")
                     if "ADD TO CART" in text:
-                        driver.quit()
-                        return True
+                        print("[DEBUG] Pokemoncenter: Produkt verfügbar!")
+                        result = True
+                        break
                     if "UNAVAILABLE" in text:
-                        driver.quit()
-                        return False
-                driver.quit()
-                return False
+                        print("[DEBUG] Pokemoncenter: Produkt nicht verfügbar.")
+                        result = False
+                        break
+
+            driver.quit()
+            return result
 
         elif "mueller.de" in url or "mediamarkt.de" in url:
+            print(f"[INFO] Prüfe via BeautifulSoup für: {url}")
+
             headers = {
                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:117.0) Gecko/20100101 Firefox/117.0"
             }
@@ -115,6 +124,7 @@ def is_product_available(url):
                 button = soup.find(lambda tag:
                                    (tag.name == "button" or tag.name == "a") and
                                    tag.get_text(strip=True).lower() == "in den warenkorb")
+                print(f"[DEBUG] Müller: Button gefunden? {button is not None}")
                 return button is not None
 
             if "mediamarkt.de" in url:
@@ -122,16 +132,20 @@ def is_product_available(url):
                                    (tag.name == "button" or tag.name == "a") and
                                    "in den warenkorb" in tag.get_text(strip=True).lower())
                 if button:
+                    print("[DEBUG] MediaMarkt: Produkt verfügbar.")
                     return True
                 not_available = soup.find(text=lambda t: t and "nicht verfügbar" in t.lower())
+                print(f"[DEBUG] MediaMarkt: nicht verfügbar gefunden? {not_available is not None}")
                 return not not_available
 
         else:
+            print(f"[WARN] Keine Regel für URL: {url}")
             return False
 
     except Exception as e:
-        print(f"Fehler beim Prüfen der URL {url}: {e}")
+        print(f"[ERROR] Fehler beim Prüfen der URL {url}: {e}")
         return False
+
 
 def check_availability():
     send_telegram_message("🔎 Produktüberwachung gestartet!")
