@@ -34,6 +34,6 @@ def check_pokemoncenter_product(url):
         print(f"[ERROR] Fehler beim Abrufen der Seite: {e}")
 
 # Beispiel-URL (prüfe diese oder ersetze durch eine andere gültige)
-test_url = "https://www.pokemoncenter.com/product/100-10019/pokemon-tcg-scarlet-and-violet-prismatic-evolutions-pokemon-center-elite-trainer-box"
+test_url = "https://www.pokemoncenter.com/product/70-10312-101/ralts-kirlia-gardevoir-and-mega-gardevoir-pokemon-pixel-pins-4-pack"
 
 check_pokemoncenter_product(test_url)
