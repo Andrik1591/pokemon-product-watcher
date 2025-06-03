@@ -1,14 +1,14 @@
 import os
 import time
-import random  # NEU hinzugefügt
+import random
 import requests
 from bs4 import BeautifulSoup
 from flask import Flask
 import threading
+
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
-from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -18,9 +18,9 @@ TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 TELEGRAM_API_URL = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
 
-# Produkt-URLs, die du überwachen willst
+# Produkt-URLs
 PRODUCT_URLS = [
-    "https://www.mueller.de/p/pokemon-sammelkartenspiel-super-premium-kollektion-karmesin-purpur-prismatische-entwicklungen-PPN3101975/?itemId=3101975",
+     "https://www.mueller.de/p/pokemon-sammelkartenspiel-super-premium-kollektion-karmesin-purpur-prismatische-entwicklungen-PPN3101975/?itemId=3101975",
     "https://www.mueller.de/p/pokemon-sammelkartenspiel-top-trainer-box-karmesin-purpur-prismatische-entwicklungen-IPN3074733/",
     "https://www.mueller.de/p/pokemon-sammelkartenspiel-spezial-kollektion-karmesin-purpur-prismatische-entwicklungen-zubehoer-beutel-PPN3098433/",
     "https://www.smythstoys.com/de/de-de/spielzeug/action-spielzeug/pokemon/pokemon-karten-karmesin-und-purpur-prismatische-entwicklungen-super-premium-kollektion/p/250525",
@@ -47,176 +47,116 @@ PRODUCT_URLS = [
     "https://www.mediamarkt.de/de/product/_the-pokemon-company-int-45935-pkm-kp07-stellarkrone-booster-sammelkarten-2951644.html"
 ]
 
-CHECK_INTERVAL = 60 * 5  # alle 5 Minuten prüfen
+CHECK_INTERVAL = 60 * 5  # 5 Minuten
 
+# Telegram
 def send_telegram_message(text):
     try:
-        response = requests.get(TELEGRAM_API_URL, params={"chat_id": CHAT_ID, "text": text})
-        if response.status_code != 200:
-            print("Fehler beim Senden der Telegram-Nachricht:", response.text)
+        res = requests.get(TELEGRAM_API_URL, params={"chat_id": CHAT_ID, "text": text})
+        if res.status_code != 200:
+            print("[TELEGRAM] Fehler:", res.text)
     except Exception as e:
-        print("Exception beim Senden der Telegram-Nachricht:", e)
+        print("[TELEGRAM] Ausnahme:", e)
 
+# Chrome Setup
+def get_chrome_driver():
+    chrome_options = Options()
+    chrome_options.binary_location = "/opt/render/project/.render/chrome/opt/google/chrome/chrome"
+    chrome_options.add_argument("--headless=new")
+    chrome_options.add_argument("--no-sandbox")
+    chrome_options.add_argument("--disable-dev-shm-usage")
+    chrome_options.add_argument("--disable-gpu")
+    chrome_options.add_argument("--window-size=1920,1080")
+    return webdriver.Chrome(options=chrome_options)
+
+# Verfügbarkeitsprüfung
 def is_product_available(url):
     try:
-        if "smythstoys.com" in url:
-            print(f"[INFO] Verwende Selenium für: {url}")
-
-            chrome_options = Options()
-            chrome_options.binary_location = "/opt/render/project/.render/chrome/opt/google/chrome/chrome"
-            chrome_options.add_argument("--headless=new")
-            chrome_options.add_argument("--disable-gpu")
-            chrome_options.add_argument("--no-sandbox")
-            chrome_options.add_argument("--disable-dev-shm-usage")
-            chrome_options.add_argument("--window-size=1920,1080")
-
-            driver = webdriver.Chrome(options=chrome_options)
+        if "smythstoys.com" in url or "pokemoncenter.com" in url:
+            print(f"[INFO] Selenium-Prüfung: {url}")
+            driver = get_chrome_driver()
             driver.get(url)
 
-            result = False
-            print("[INFO] Smyths: Seite geladen, warte auf Button...")
+            WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.TAG_NAME, "body")))
 
-            try:
-                WebDriverWait(driver, 10).until(
-                    EC.presence_of_element_located((By.XPATH,
-                        "//button[contains(translate(text(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÜ', 'abcdefghijklmnopqrstuvwxyzäöü'), 'in den warenkorb')]"
-                    ))
-                )
-            except:
-                print("[WARN] Smyths: Kein Button gefunden – evtl. zu langsam geladen?")
-                driver.save_screenshot("smyths_debug.png")
-                driver.quit()
-                return False
+            if "smythstoys.com" in url:
+                print("[DEBUG] Suche Smyths-Button...")
+                button = driver.find_elements(By.XPATH, "//button[contains(translate(text(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÜ', 'abcdefghijklmnopqrstuvwxyzäöü'), 'in den warenkorb')]")
+                for btn in button:
+                    if btn.is_enabled() and "cursor-not-allowed" not in btn.get_attribute("class"):
+                        print("[DEBUG] Smyths verfügbar.")
+                        driver.quit()
+                        return True
 
-            buttons = driver.find_elements(By.XPATH,
-                "//button[contains(translate(text(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÜ', 'abcdefghijklmnopqrstuvwxyzäöü'), 'in den warenkorb')]"
-            )
-            print(f"[DEBUG] Smyths: Gefundene Buttons: {len(buttons)}")
-
-            for btn in buttons:
-                classlist = btn.get_attribute("class")
-                is_disabled = btn.get_attribute("disabled") is not None
-                aria_disabled = btn.get_attribute("aria-disabled") == "true"
-                print(f"[DEBUG] Button Klassen: {classlist}, disabled: {is_disabled}, aria-disabled: {aria_disabled}")
-
-                if is_disabled or aria_disabled or "cursor-not-allowed" in classlist or "bg-grey" in classlist:
-                    continue
-                if "bg-green" in classlist or "bg-green-500" in classlist or "text-white" in classlist:
-                    print("[DEBUG] Smyths: Produkt verfügbar!")
-                    result = True
-                    break
+            if "pokemoncenter.com" in url:
+                print("[DEBUG] Suche PokémonCenter-Button...")
+                button = driver.find_elements(By.CLASS_NAME, "add-to-cart-button--PZmQF")
+                for btn in button:
+                    text = btn.text.strip().upper()
+                    print(f"[DEBUG] Button-Text: {text}")
+                    if "ADD TO CART" in text:
+                        print("[DEBUG] PokémonCenter verfügbar.")
+                        driver.quit()
+                        return True
 
             driver.quit()
-            return result
+            print("[DEBUG] Kein aktiver Button gefunden.")
+            return False
 
-        elif "mueller.de" in url:
-            print(f"[INFO] Prüfe via BeautifulSoup für: {url}")
-            headers = {
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:117.0) Gecko/20100101 Firefox/117.0"
-            }
-            response = requests.get(url, headers=headers)
-            response.raise_for_status()
-            soup = BeautifulSoup(response.text, "html.parser")
-
-            button = soup.find(lambda tag:
-                (tag.name == "button" or tag.name == "a") and
-                tag.get_text(strip=True).lower() == "in den warenkorb")
-            print(f"[DEBUG] Müller: Button gefunden? {button is not None}")
-            return button is not None
-
-        elif "mediamarkt.de" in url:
-            print(f"[INFO] Prüfe via BeautifulSoup für: {url}")
-            headers = {
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:117.0) Gecko/20100101 Firefox/117.0"
-            }
-            response = requests.get(url, headers=headers)
-            response.raise_for_status()
-            soup = BeautifulSoup(response.text, "html.parser")
+        else:
+            print(f"[INFO] BeautifulSoup-Prüfung: {url}")
+            headers = {"User-Agent": "Mozilla/5.0"}
+            res = requests.get(url, headers=headers)
+            res.raise_for_status()
+            soup = BeautifulSoup(res.text, "html.parser")
 
             button = soup.find(lambda tag:
                 (tag.name == "button" or tag.name == "a") and
                 "in den warenkorb" in tag.get_text(strip=True).lower())
             if button:
-                print("[DEBUG] MediaMarkt: Produkt verfügbar.")
                 return True
+
             not_available = soup.find(text=lambda t: t and "nicht verfügbar" in t.lower())
-            print(f"[DEBUG] MediaMarkt: nicht verfügbar gefunden? {not_available is not None}")
             return not not_available
 
-        elif "pokemoncenter.com" in url:
-            print(f"[INFO] Prüfe via BeautifulSoup für: {url}")
-            headers = {
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:117.0) Gecko/20100101 Firefox/117.0"
-            }
-            response = requests.get(url, headers=headers)
-            response.raise_for_status()
-            soup = BeautifulSoup(response.text, "html.parser")
-
-            print("[INFO] Pokemoncenter: Prüfe auf 'Add to Cart'...")
-
-            button = soup.find("button", class_=lambda c: c and "add-to-cart-button" in c)
-            if button:
-                text = button.get_text(strip=True).upper()
-                print(f"[DEBUG] Pokemoncenter Button Text: {text}")
-                if "ADD TO CART" in text:
-                    print("[DEBUG] Pokemoncenter: Produkt verfügbar!")
-                    return True
-                elif "SOLD OUT" in text or "UNAVAILABLE" in text:
-                    print("[DEBUG] Pokemoncenter: Produkt nicht verfügbar.")
-                    return False
-            print("[DEBUG] Pokemoncenter: Kein relevanter Button gefunden.")
-            return False
-
-        else:
-            print(f"[WARN] Keine Regel für URL: {url}")
-            return False
-
     except Exception as e:
-        print(f"[ERROR] Fehler beim Prüfen der URL {url}: {e}")
+        print(f"[ERROR] Fehler bei {url}: {e}")
         return False
 
-        
-
+# Verfügbarkeitsüberwachung
 def check_availability():
     send_telegram_message("🔎 Produktüberwachung gestartet!")
     while True:
         for url in PRODUCT_URLS:
-            print(f"Prüfe Verfügbarkeit: {url}")
+            print(f"[CHECK] {url}")
             if is_product_available(url):
-                send_telegram_message(f"✅ Produkt verfügbar: {url}")
+                send_telegram_message(f"✅ Verfügbar: {url}")
             else:
-                print("Nicht verfügbar.")
-
-            delay = random.uniform(1, 5)
-            print(f"Warte {delay:.2f} Sekunden vor dem nächsten Request...")
-            time.sleep(delay)
-
-        print(f"Warte {CHECK_INTERVAL / 60} Minuten bis zum nächsten Check.")
+                print("[INFO] Nicht verfügbar.")
+            time.sleep(random.uniform(1, 5))
+        print(f"[WARTEN] Nächster Check in {CHECK_INTERVAL // 60} Minuten.")
         time.sleep(CHECK_INTERVAL)
 
+# Heartbeat
 def send_heartbeat():
     while True:
-        send_telegram_message("⏰ Service läuft noch - alles okay!")
+        send_telegram_message("⏰ Service läuft weiter.")
         time.sleep(3600)
 
+# Flask App
 app = Flask(__name__)
 
 @app.route("/")
 def index():
-    return "Produktüberwachung läuft!"
+    return "Produktüberwachung läuft."
 
 @app.route("/health")
-def health_check():
+def health():
     return "OK"
 
+# App-Start
 if __name__ == "__main__":
-    thread_check = threading.Thread(target=check_availability)
-    thread_check.daemon = True
-    thread_check.start()
-
-    thread_heartbeat = threading.Thread(target=send_heartbeat)
-    thread_heartbeat.daemon = True
-    thread_heartbeat.start()
-
+    threading.Thread(target=check_availability, daemon=True).start()
+    threading.Thread(target=send_heartbeat, daemon=True).start()
     port = int(os.environ.get("PORT", 8080))
     app.run(host="0.0.0.0", port=port)
