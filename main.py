@@ -62,8 +62,9 @@ def send_telegram_message(text):
 
 # Chrome Setup
 def get_chrome_driver():
-    chrome_path = os.getenv("CHROME_PATH", "/usr/bin/google-chrome")
-    chromedriver_path = os.getenv("CHROMEDRIVER_PATH", "/usr/local/bin/chromedriver")
+    # Standardpfade passend zum Docker-Setup
+    chrome_path = os.getenv("CHROME_PATH", "/usr/bin/chromium")
+    chromedriver_path = os.getenv("CHROMEDRIVER_PATH", "/usr/bin/chromedriver")
 
     chrome_options = Options()
     chrome_options.binary_location = chrome_path
@@ -76,6 +77,7 @@ def get_chrome_driver():
     service = Service(executable_path=chromedriver_path)
 
     return webdriver.Chrome(service=service, options=chrome_options)
+
 
 
 # Verfügbarkeitsprüfung
