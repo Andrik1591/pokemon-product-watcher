@@ -62,14 +62,21 @@ def send_telegram_message(text):
 
 # Chrome Setup
 def get_chrome_driver():
+    chrome_path = os.getenv("CHROME_PATH", "/usr/bin/google-chrome")
+    chromedriver_path = os.getenv("CHROMEDRIVER_PATH", "/usr/local/bin/chromedriver")
+
     chrome_options = Options()
-    chrome_options.binary_location = "/opt/render/project/.render/chrome/opt/google/chrome/chrome"
+    chrome_options.binary_location = chrome_path
     chrome_options.add_argument("--headless=new")
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
     chrome_options.add_argument("--disable-gpu")
     chrome_options.add_argument("--window-size=1920,1080")
-    return webdriver.Chrome(options=chrome_options)
+
+    service = Service(executable_path=chromedriver_path)
+
+    return webdriver.Chrome(service=service, options=chrome_options)
+
 
 # Verfügbarkeitsprüfung
 def is_product_available(url):
