@@ -6,7 +6,7 @@ RUN apt-get update && apt-get install -y \
     libappindicator3-1 libasound2 libnspr4 libnss3 libxss1 libxtst6 \
     libatk-bridge2.0-0 libc6 libcairo2 libx11-xcb1 libxcomposite1 \
     libxdamage1 libxrandr2 xdg-utils libxext6 libxfixes3 libglib2.0-0 \
-    libgbm1 libdbus-1-3 \
+    libgbm1 libdbus-1-3 unzip \
     && rm -rf /var/lib/apt/lists/*
 
 # Google Chrome installieren
@@ -21,18 +21,15 @@ RUN CHROME_VERSION=$(google-chrome --version | grep -oP '\d+\.\d+\.\d+') && \
     unzip /tmp/chromedriver.zip -d /usr/local/bin/ && \
     chmod +x /usr/local/bin/chromedriver && \
     rm /tmp/chromedriver.zip
+
+# Env-Variablen setzen, passend zu deinem Python-Code
 ENV CHROME_PATH=/usr/bin/google-chrome
 ENV CHROMEDRIVER_PATH=/usr/local/bin/chromedriver
 
-
-# Arbeitsverzeichnis
 WORKDIR /app
 
-# Projektdateien kopieren
 COPY . .
 
-# Python-Abhängigkeiten installieren
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Startkommando
 CMD ["bash", "start.sh"]
